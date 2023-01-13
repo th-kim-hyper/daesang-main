@@ -1,0 +1,728 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.daesang.rpa.repository.mariadb.CommonMapper">
+
+	<select id="selectStatisticsDivisions" resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT DISTINCT JI.DIV_NAME
+		  FROM portal.tb_job_info JI
+		 ORDER BY DIV_NAME
+		]]>
+	</select>
+
+	<select id="selectStatisticsDivisionTeams" parameterType="String"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT DISTINCT JI.DIV_NAME
+		      ,JI.TEAM_NAME
+		  FROM portal.tb_job_info JI
+		 WHERE JI.DIV_NAME = #{divName}
+		 ORDER BY DIV_NAME, TEAM_NAME
+		]]>
+	</select>
+
+	<sql id="selectResultLog">
+		<![CDATA[
+		-- 제공 받은 통계 SQL START
+		select *
+		  from(select omap.upper_object_id as TARGETID
+		             ,obj.object_name as OBJECT_NAME
+		             ,info.result_code as RESULTCODE
+		             ,result_code.code_nm as CODE_NM
+		             ,convert_tz(info.start_time, '+00:00', '+09:00') as STARTTIME
+		             ,convert_tz(info.end_time, '+00:00', '+09:00') as ENDTIME
+		             ,info.job_type
+		             ,NOW() AS REG_DATE
+			     from rpa.v_job_result_log info
+		         left outer join rpa.tb_object_map omap
+		           on info.target_id = omap.object_id
+		          and info.version = omap.version
+		          and omap.upper_object_type_id = 1
+		         left outer join rpa.tb_common_object obj
+		           on info.target_id = obj.object_id
+		          and info.version = obj.version
+		         left outer join rpa.tb_fr_code_info result_code
+		           on(result_code.parent_code_sq = 'cod_030546' and result_code.code_val collate utf8_unicode_ci = info.result_code)) t
+		 where t.job_type = 1
+		 union all
+		select info.TARGET_ID AS TARGETID
+		      ,obj.object_name as OBJECT_NAME
+		      ,info.result_code as RESULTCODE
+		      ,result_code.code_nm as CODE_NM
+		      ,convert_tz(info.start_time, '+00:00', '+09:00') as STARTTIME
+		      ,convert_tz(info.end_time, '+00:00', '+09:00') as ENDTIME
+		      ,info.job_type
+		      ,NOW() AS REG_DATE
+		  from rpa.v_job_result_log info
+		  left outer join rpa.tb_common_object obj
+		    on info.target_id = obj.object_id
+		   and info.version = obj.version
+		  left outer join rpa.tb_fr_code_info result_code
+		    on(result_code.parent_code_sq = 'cod_030546' and result_code.code_val collate utf8_unicode_ci = info.result_code)
+		 where job_type = 2
+		-- 제공 받은 통계 SQL END
+		]]>
+	</sql>
+
+	<sql id="selectStatistics">
+		<![CDATA[
+		SELECT JS.TARGETID AS TARGET_ID
+		      ,JI.TARGET_NAME
+		      ,JS.OBJECT_NAME
+		      ,JI.DIV_NAME
+		      ,JI.TEAM_NAME
+		      ,JS.RESULTCODE AS RESULT_CODE
+		      ,JS.CODE_NM AS RESULT_NAME
+		      ,JS.STARTTIME AS START_TIME
+		      ,JS.ENDTIME AS END_TIME
+		      ,JS.JOB_TYPE
+		      ,DATE_FORMAT(JS.STARTTIME, '%Y%m%d') AS START_DATE
+		      ,DATE_FORMAT(JS.STARTTIME, '%H') AS START_HOUR
+		      ,TIMESTAMPDIFF(second, JS.STARTTIME, JS.ENDTIME) AS WORK_TIME
+		  FROM(
+		]]>
+		<include refid="selectResultLog"></include>
+		<![CDATA[
+		       ) JS
+		  JOIN portal.tb_job_info JI
+		    ON JS.TARGETID = JI.TARGET_ID
+		 WHERE DATE_FORMAT(JS.STARTTIME, '%Y%m%d') BETWEEN STR_TO_DATE(#{regDtFrom}, '%Y%m%d') AND STR_TO_DATE(#{regDtTo}, '%Y%m%d')
+		]]>
+		<if test="divName != null and divName != ''">
+		<![CDATA[
+		   AND JI.DIV_NAME = #{divName}
+		]]>
+		</if>
+		<if test="teamName != null and teamName != ''">
+		<![CDATA[
+		   AND JI.TEAM_NAME = #{teamName}
+		]]>
+		</if>
+	</sql>
+
+	<select id="selectStatisticsTimeSummaries" parameterType="Map"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT ST.TEAM_NAME
+		      ,ROUND(SUM(ST.WORK_TIME) / 60 / 60, 0) AS WORK_HOUR
+		  FROM(
+		]]>
+		<include refid="selectStatistics"></include>
+		<![CDATA[
+		      ) ST
+		 WHERE ST.RESULT_CODE = 1
+		 GROUP BY ST.TEAM_NAME
+		 ORDER BY WORK_HOUR DESC, TEAM_NAME
+		]]>
+	</select>
+
+	<select id="selectStatisticsTargetCounts" parameterType="Map"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT ST.TEAM_NAME
+		      ,COUNT(*) AS TARGET_CNT
+		  FROM(
+		]]>
+		<include refid="selectStatistics"></include>
+		<![CDATA[
+		      ) ST
+		 WHERE ST.RESULT_CODE = 1
+		 GROUP BY ST.TEAM_NAME
+		 ORDER BY TARGET_CNT DESC, TEAM_NAME
+		]]>
+	</select>
+
+	<select id="selectStatisticsObjectCounts"
+		parameterType="Map" resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT ST.TEAM_NAME
+		      ,COUNT(*) AS OBJECT_CNT
+		  FROM(SELECT DISTINCT JI.TEAM_NAME
+		             ,JS.OBJECT_NAME
+		         FROM(
+		]]>
+		<include refid="selectResultLog"></include>
+		<![CDATA[
+		             ) JS
+		         JOIN portal.tb_job_info JI
+		           ON JS.TARGETID = JI.TARGET_ID
+		        WHERE DATE_FORMAT(JS.STARTTIME, '%Y%m%d') BETWEEN STR_TO_DATE(#{regDtFrom}, '%Y%m%d') AND STR_TO_DATE(#{regDtTo}, '%Y%m%d')
+		          AND JS.RESULTCODE = 1
+		]]>
+		<if test="divName != null and divName != ''">
+		<![CDATA[
+		          AND JI.DIV_NAME = #{divName}
+		]]>
+		</if>
+		<if test="teamName != null and teamName != ''">
+		<![CDATA[
+		          AND JI.TEAM_NAME = #{teamName}
+		]]>
+		</if>
+		<![CDATA[
+		      ) ST
+		 GROUP BY ST.TEAM_NAME
+		 ORDER BY OBJECT_CNT DESC, TEAM_NAME
+		]]>
+	</select>
+
+	<select id="selectStatisticsResults" parameterType="Map"
+	resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT ST.RESULT_CODE
+		      ,ST.RESULT_NAME
+		      ,COUNT(ST.RESULT_CODE) AS RESULT_CNT
+		  FROM(
+		]]>
+		<include refid="selectStatistics"></include>
+		<![CDATA[
+		      ) ST
+		 GROUP BY ST.RESULT_CODE
+		 ORDER BY RESULT_CODE
+		]]>
+	</select>
+
+	<select id="selectStatisticsHourResults" parameterType="Map"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT ST.RESULT_CODE
+		      ,ST.RESULT_NAME
+		      ,COUNT(ST.RESULT_CODE) AS RESULT_CNT
+		      ,ST.START_HOUR
+		  FROM(
+		]]>
+		<include refid="selectStatistics"></include>
+		<![CDATA[
+		      ) ST
+		 GROUP BY ST.RESULT_CODE, ST.START_HOUR
+		 ORDER BY RESULT_CODE, START_HOUR 
+		]]>
+	</select>
+
+	<sql id="sqlSelectTenant">
+		<![CDATA[
+		SELECT TNT.TENANT_ID
+		      ,TNT.TENANT_NAME
+		      ,IF(TNT.PRE_NAME = '', 'rpa', CONCAT(TNT.PRE_NAME, '_rpa')) AS PRE_NAME
+		      ,TNT.DATA_SOURCE_ID
+		      ,TNT.IS_CATALOG
+		      ,TNT.USE_YN
+		      ,TNT.DEL_YN
+		      ,TNT.ADMIN_PORTAL_YN
+		      ,TNT.CONNECT_ENABLE_YN
+		      ,CONVERT_TZ(TNT.CREATE_DT, '+00:00', '+09:00') AS CREATE_DT
+		      ,TNT.CREATE_USR_ID
+		      ,CONVERT_TZ(TNT.UPDATE_DT, '+00:00', '+09:00') AS UPDATE_DT
+		      ,TNT.UPDATE_USR_ID
+		      ,TNT.SORT_ORDER
+		      ,TNT.DESCRIPTION
+		      ,TNT.REPRESENTATIVE_MANAGER
+		      ,TNT.SECURE_DATA_KEY
+		  FROM catalog.tb_tenant_info TNT
+		 WHERE TNT.USE_YN = 'Y'
+		   AND TNT.DEL_YN = 'N'
+		   AND TNT.ADMIN_PORTAL_YN = 'N'
+		]]>
+	</sql>
+
+	<select id="selectTenants" resultType="CamelCaseMap">
+		<include refid="sqlSelectTenant"></include>
+		<![CDATA[
+		 ORDER BY TNT.SORT_ORDER
+		]]>
+	</select>
+
+	<select id="selectTenant" parameterType="String"
+		resultType="CamelCaseMap">
+		<include refid="sqlSelectTenant"></include>
+		<![CDATA[
+		   AND TNT.TENANT_ID = #{tenantId}
+		]]>
+	</select>
+
+	<select id="selectTenantGroups" parameterType="String"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT GRP.GROUP_ID
+		      ,GRP.GROUP_TYPE
+		      ,GRP.GROUP_NAME
+		      ,GRP.GROUP_DESCRIPTION
+		      ,GRP.GROUP_ORDER
+		      ,GRP.USE_YN
+		      ,GRP.CREATE_USR_ID
+		      ,CONVERT_TZ(GRP.CREATE_DT, '+00:00', '+09:00') AS CREATE_DT
+		      ,GRP.UPDATE_USR_ID
+		      ,CONVERT_TZ(GRP.UPDATE_DT, '+00:00', '+09:00') AS UPDATE_DT
+		      ,GRP.IS_DEFAULT
+		      ,GRP.IS_MONITORING
+		      ,GRP.IS_ADMIN
+		  FROM ${preName}.tb_rpa_group GRP
+		 WHERE GRP.GROUP_TYPE = '0'
+		 ORDER BY GRP.GROUP_TYPE
+		         ,GRP.GROUP_ORDER
+		         ,GRP.GROUP_NAME
+		]]>
+	</select>
+
+	<select id="selectTenantWorkgroups" parameterType="String"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT WGR.WORKGROUP_SQ
+		      ,WGR.WORKGROUP_ID
+		      ,WGR.WORKGROUP_NM
+		      ,WGR.DESCRIPTION
+		      ,WGR.USE_YN
+		      ,WGR.CREATE_USR_ID
+		      ,CONVERT_TZ(WGR.CREATE_DT, '+00:00', '+09:00') AS UPDATE_DT
+		      ,WGR.UPDATE_USR_ID
+		      ,CONVERT_TZ(WGR.UPDATE_DT, '+00:00', '+09:00') AS UPDATE_DT
+		      ,WGR.IS_DEFAULT
+		      ,WGR.IS_REQUIRED
+		  FROM ${preName}.tb_fr_workgroup_info WGR
+		 WHERE WGR.IS_DEFAULT <> 'Y'
+		]]>
+	</select>
+
+	<sql id="sqlSelectMember">
+		<![CDATA[
+		SELECT TNT.TENANT_NAME
+		      ,IF(TNT.PRE_NAME = '', 'rpa', CONCAT(TNT.PRE_NAME, '_rpa')) AS PRE_NAME
+		      ,TUM.TENANT_ID
+		]]>
+		<if test="tenantId != null and tenantId != ''">
+		<![CDATA[
+		      ,WGR.WORKGROUP_SQ
+		      ,WGR.WORKGROUP_NM
+		      ,TMP.GROUP_COUNT
+		      ,TMP.GROUP_IDS
+		      ,TMP.GROUP_NAMES
+		      ,IF(TMP.GROUP_COUNT < 2, TMP.GROUP_NAMES, CONCAT(REGEXP_REPLACE(TMP.GROUP_NAMES, ',.+', ''), ' 외 ', TMP.GROUP_COUNT - 1, '건')) AS GROUP_SUMMARY
+		]]>
+		</if>
+		<![CDATA[
+		      ,USR.USER_ID
+		      ,USR.USER_NM
+		      #,USR.PASSWORD
+		      ,USR.EMAIL
+		      #,USR.PW_FAIL_CNT
+		      #,USR.PHONE_NUMBER
+		      ,CONVERT_TZ(USR.RECENT_LOGIN_DT, '+00:00', '+09:00') AS RECENT_LOGIN_DT
+		      ,USR.RECENT_LOGIN_IP
+		      ,USR.GRD_CD
+		      ,USR.STATUS_CD
+		      #,CONVERT_TZ(USR.PW_CHANGE_DT, '+00:00', '+09:00') AS PW_CHANGE_DT
+		      ,USR.TZ_ID
+		      ,DATE_FORMAT(CONVERT_TZ(USR.CREATE_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS CREATE_DT
+		      ,USR.CREATE_USR_ID
+		      ,DATE_FORMAT(CONVERT_TZ(USR.UPDATE_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS UPDATE_DT
+		      ,USR.UPDATE_USR_ID
+		      ,USR.POSITION
+		      ,USR.ACCOUNT_CD
+		      ,USR.COUNTRY_CD
+		      ,USR.COMPANY_SQ
+		      ,USR.DEPT_SQ
+		      ,USR.BIRTH_DATE
+		      ,USR.USER_TYPE
+		      ,USR.PHOTO
+		      ,USR.VERIFY_PHONE
+		      ,USR.COUNTRY_NUMBER
+		  FROM ${preName}.tb_fr_user_info USR
+		  JOIN catalog.tb_tenant_user_mapping TUM
+		    ON USR.USER_ID = TUM.USER_ID
+		  JOIN catalog.tb_tenant_info TNT
+		    ON TUM.TENANT_ID = TNT.TENANT_ID
+		]]>
+		<if test="tenantId != null and tenantId != ''">
+		<![CDATA[
+		  JOIN ${preName}.tb_fr_workgroup_user_map WUM
+		    ON USR.USER_ID = WUM.USER_ID
+		  JOIN ${preName}.tb_fr_workgroup_info WGR
+		    ON WUM.WORKGROUP_SQ = WGR.WORKGROUP_SQ
+		  JOIN(SELECT GUM.USER_ID
+		             ,COUNT(GUM.USER_ID) AS GROUP_COUNT
+		             ,GROUP_CONCAT(GRP.GROUP_ID ORDER BY GRP.GROUP_TYPE, GRP.GROUP_ORDER, GRP.GROUP_ID) AS GROUP_IDS
+		             ,GROUP_CONCAT(GRP.GROUP_NAME ORDER BY GRP.GROUP_TYPE, GRP.GROUP_ORDER, GRP.GROUP_ID) AS GROUP_NAMES
+		         FROM ${preName}.tb_rpa_group_user_mapping GUM
+		         JOIN ${preName}.tb_rpa_group GRP
+		           ON GUM.GROUP_ID = GRP.GROUP_ID
+		        GROUP BY GUM.USER_ID) TMP
+		    ON USR.USER_ID = TMP.USER_ID
+		 WHERE 1=1
+		]]>
+		</if>
+	</sql>
+
+	<sql id="sqlSelectMemberWhere">
+		<if test="userId != null and userId != ''">
+		<![CDATA[
+		   AND USR.USER_ID LIKE CONCAT('%', #{userId}, '%')
+		]]>
+		</if>
+		<if test="email != null and email != ''">
+		<![CDATA[
+		   AND USR.EMAIL LIKE CONCAT('%', #{email}, '%')
+		]]>
+		</if>
+		<if test="userNm != null and userNm != ''">
+		<![CDATA[
+		   AND USR.USER_NM LIKE CONCAT('%', #{userNm}, '%')
+		]]>
+		</if>
+		<if test="companySq != null and companySq != ''">
+		<![CDATA[
+		   AND USR.COMPANY_SQ LIKE CONCAT('%', #{companySq}, '%')
+		]]>
+		</if>
+		<if test="deptSq != null and deptSq != ''">
+		<![CDATA[
+		   AND USR.DEPT_SQ LIKE CONCAT('%', #{deptSq}, '%')
+		]]>
+		</if>
+		<if test="workgroupSq != null and workgroupSq != ''">
+		<![CDATA[
+		   AND WUM.WORKGROUP_SQ = #{workgroupSq}
+		]]>
+		</if>
+		<if test="tenantGroups != null and tenantGroups != ''">
+		<![CDATA[
+		   AND TMP.GROUP_IDS REGEXP #{tenantGroups}
+		]]>
+		</if>
+	</sql>
+
+	<select id="selectMembers" parameterType="Map"
+		resultType="CamelCaseMap">
+		<include refid="sqlSelectMember"></include>
+		<![CDATA[
+		 ORDER BY TUM.TENANT_ID
+		         ,USR.CREATE_DT
+		]]>
+	</select>
+
+	<select id="selectTenantMembers" parameterType="Map"
+		resultType="CamelCaseMap">
+		<include refid="sqlSelectMember"></include>
+		<include refid="sqlSelectMemberWhere"></include>
+		<if test="regDtFrom != null and regDtFrom != ''">
+		<![CDATA[
+		   AND DATE_FORMAT(CONVERT_TZ(USR.CREATE_DT, '+00:00', '+09:00'), '%Y%m%d') >= ${regDtFrom}
+		]]>
+		</if>
+		<if test="regDtTo != null and regDtTo != ''">
+		<![CDATA[
+		   AND DATE_FORMAT(CONVERT_TZ(USR.CREATE_DT, '+00:00', '+09:00'), '%Y%m%d') <= ${regDtTo}
+		]]>
+		</if>
+		<if test="userIds != null and userIds.length > 0">
+		   AND USR.USER_ID IN
+			<foreach item="userId" index="i" collection="userIds" open="("
+				separator="," close=")">
+		                     #{userId}
+			</foreach>
+		</if>
+		<![CDATA[
+		   AND TUM.TENANT_ID = #{tenantId}
+		 ORDER BY USR.CREATE_DT
+		]]>
+	</select>
+
+	<select id="selectTenantMember" parameterType="Map"
+		resultType="CamelCaseMap">
+		<include refid="sqlSelectMember"></include>
+		<![CDATA[
+		   AND TUM.TENANT_ID = #{tenantId}
+		   AND USR.USER_ID = #{userId}
+		]]>
+	</select>
+
+	<select id="selectTenantMemberGroups" parameterType="String"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT GUM.USER_ID
+		      ,GUM.CREATE_USR_ID
+		      #,CONVERT_TZ(GUM.CREATE_DT, '+00:00', '+09:00') AS CREATE_DT
+		      ,GRP.GROUP_ID
+		      ,GRP.GROUP_TYPE
+		      ,GRP.GROUP_NAME
+		      ,GRP.GROUP_DESCRIPTION
+		      ,GRP.GROUP_ORDER
+		      ,GRP.USE_YN
+		      ,GRP.CREATE_USR_ID
+		      ,CONVERT_TZ(GRP.CREATE_DT, '+00:00', '+09:00') AS CREATE_DT
+		      ,GRP.UPDATE_USR_ID
+		      ,GRP.IS_MONITORING
+		      ,GRP.IS_ADMIN
+		  FROM ${preName}.tb_rpa_group_user_mapping GUM
+		  JOIN ${preName}.tb_rpa_group GRP
+		    ON GUM.GROUP_ID = GRP.GROUP_ID
+		 WHERE GUM.USER_ID = #{userId}
+		 ORDER BY GRP.GROUP_TYPE
+		         ,GRP.GROUP_ORDER
+		         ,GRP.GROUP_ID
+		]]>
+	</select>
+
+	<select id="selectHistoryLogins" parameterType="Map"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT LOG.LOG_SQ
+		      ,LOG.EVENT_IP
+		      ,LOG.USER_ID
+		      ,USR.USER_NM
+		      ,USR.EMAIL
+		      ,DATE_FORMAT(CONVERT_TZ(LOG.EVENT_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS EVENT_DT
+		      ,LOG.EVENT_CD
+		      ,LOG.LOG_MSG
+		      ,DATE_FORMAT(CONVERT_TZ(LOG.REG_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS REG_DT
+		      ,LOG.CREATE_USR_ID
+		      ,LOG.EVENT_URL
+		      ,LOG.PORTAL_NM
+		      ,LOG.SUCCESS_YN
+		  FROM ${preName}.tb_fr_sys_log LOG
+		  JOIN ${preName}.tb_fr_user_info USR
+		    ON LOG.USER_ID = USR.USER_ID
+		 WHERE LOG.EVENT_CD IN ('LOG_000011', 'LOG_000012')
+		]]>
+		<include refid="sqlSelectMemberWhere"></include>
+		<if test="eventCd != null and eventCd != ''">
+		<![CDATA[
+		   AND LOG.EVENT_CD = #{eventCd}
+		]]>
+		</if>
+		<if test="eventIp != null and eventIp != ''">
+		<![CDATA[
+		   AND LOG.EVENT_IP like CONCAT('%', #{eventIp}, '%')
+		]]>
+		</if>
+		<if test="regDtFrom != null and regDtFrom != ''">
+		<![CDATA[
+		   AND DATE_FORMAT(CONVERT_TZ(LOG.REG_DT, '+00:00', '+09:00'), '%Y%m%d') >= ${regDtFrom}
+		]]>
+		</if>
+		<if test="regDtTo != null and regDtTo != ''">
+		<![CDATA[
+		   AND DATE_FORMAT(CONVERT_TZ(LOG.REG_DT, '+00:00', '+09:00'), '%Y%m%d') <= ${regDtTo}
+		]]>
+		</if>
+		<![CDATA[
+		 ORDER BY LOG.EVENT_DT DESC
+		         ,LOG.EVENT_CD
+		]]>
+	</select>
+
+	<select id="selectHistoryGroupChanges" parameterType="Map"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT * FROM (
+		
+		SELECT GCM.APV_NO
+		      ,GCM.APV_USER_ID
+		      ,DATE_FORMAT(CONVERT_TZ(GCM.APV_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS APV_DT
+		      ,GCM.REQ_USER_ID
+		      ,DATE_FORMAT(CONVERT_TZ(GCM.REQ_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS REQ_DT
+		      ,GCD.USER_ID
+		      ,USR.USER_NM
+		      ,USR.EMAIL
+		      ,GCD.GROUP_ID
+		      ,GRP.GROUP_NAME
+		      ,IF(GCD.ADD_YN = '1', '등록', '삭제') AS ADD_YN
+		      ,GCD.BEFORE_STATUS
+		      ,GCD.REQ_ID
+		      ,DATE_FORMAT(CONVERT_TZ(GCD.REG_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS REG_DT
+		      ,IF(INSTR(REQ.RES_JSON, '"resultCode":true'), '성공', '실패') AS RESULT
+		  FROM portal.tb_group_change GCM
+		  JOIN portal.tb_group_change_detail GCD
+		    ON GCM.APV_NO = GCD.APV_NO
+		  JOIN ${preName}.tb_fr_user_info USR
+		    ON GCD.USER_ID = USR.USER_ID
+		  JOIN ${preName}.tb_rpa_group GRP
+		    ON GCD.GROUP_ID = GRP.GROUP_ID
+		  JOIN portal.tb_api_request REQ
+		    ON GCD.REQ_ID = REQ.REQ_ID
+		UNION ALL
+		SELECT '-' AS APV_NO
+		      ,NULL AS APV_USER_ID
+		      ,NULL AS APV_DT
+		      ,PCH.CREATE_USR_ID AS REQ_USER_ID
+		      ,DATE_FORMAT(CONVERT_TZ(PCH.CREATE_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS REQ_DT
+		      ,PCH.PARENT_KEY AS USER_ID
+		      ,USR.USER_NM AS USER_NM
+		      ,USR.EMAIL AS EMAIL
+		      ,PCH.REQUEST_DATA AS GROUP_ID
+		      ,'-' AS GROUP_NAME
+		      ,'-' AS ADD_YN
+		      ,'-' AS BEFORE_STATUS
+		      ,PCH.SEQ AS REQ_ID
+		      ,DATE_FORMAT(CONVERT_TZ(PCH.CREATE_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS REG_DT
+		      ,'성공' AS RESULT
+		  FROM ${preName}.tb_permission_change_history PCH
+		  JOIN ${preName}.tb_fr_user_info USR
+		    ON PCH.PARENT_KEY = USR.USER_ID
+############################################################################
+		 WHERE PCH.ACTION = 'CHANGE_MAPPING' AND PCH.PARENT_TYPE != 'GROUP' AND PCH.CHILD_TYPE != 'USER'
+		UNION ALL
+		SELECT S.APV_NO
+		      ,S.APV_USER_ID
+		      ,S.APV_DT
+		      ,S.REQ_USER_ID
+		      ,S.REQ_DT
+		      ,S.USER_ID
+		      ,USR.USER_NM
+		      ,USR.EMAIL
+		      ,S.GROUP_ID
+		      ,GRP.GROUP_NAME
+		      ,S.ADD_YN
+		      ,S.BEFORE_STATUS
+		      ,S.REQ_ID
+		      ,S.REG_DT
+		      ,S.RESULT
+		  FROM(SELECT '-' AS APV_NO
+		             ,NULL AS APV_USER_ID
+		             ,NULL AS APV_DT
+		             ,PCH.CREATE_USR_ID AS REQ_USER_ID
+		             ,DATE_FORMAT(CONVERT_TZ(PCH.CREATE_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS REQ_DT
+		             ,JSON_UNQUOTE(JSON_EXTRACT(PCH.REQUEST_DATA, CONCAT('$[', NUMS.IDX, ']'))) AS USER_ID
+		             ,NULL AS USER_NM
+		             ,NULL AS EMAIL
+		             ,PCH.PARENT_KEY AS GROUP_ID
+		             ,NULL AS GROUP_NAME
+		             ,'등록' AS ADD_YN
+		             ,'-' AS BEFORE_STATUS
+		             ,PCH.SEQ AS REQ_ID
+		             ,DATE_FORMAT(CONVERT_TZ(PCH.CREATE_DT, '+00:00', '+09:00'), '%Y/%m/%d %T') AS REG_DT
+		             ,'성공' AS RESULT
+		         FROM rpa.tb_permission_change_history PCH
+		         JOIN(SELECT @row as IDX, @row := @row + 1 AS N
+		                FROM(SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) T2,
+		                    (SELECT 0 UNION ALL SELECT 1 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) T1, 
+		                    (SELECT @row:=0) T0) NUMS on NUMS.N <= JSON_LENGTH(PCH.REQUEST_DATA)
+		               WHERE PCH.ACTION = 'CHANGE_MAPPING' AND PCH.PARENT_TYPE = 'GROUP' AND PCH.CHILD_TYPE = 'USER') S
+		         JOIN rpa.tb_fr_user_info USR
+		           ON S.USER_ID = USR.USER_ID
+		         JOIN rpa.tb_rpa_group GRP 
+		           ON S.GROUP_ID = GRP.GROUP_ID
+############################################################################
+		) T
+		 WHERE 1=1
+		]]>
+		<if test="userId != null and userId != ''">
+		<![CDATA[
+		   AND T.USER_ID LIKE CONCAT('%', #{userId}, '%')
+		]]>
+		</if>
+		<if test="email != null and email != ''">
+		<![CDATA[
+		   AND T.EMAIL LIKE CONCAT('%', #{email}, '%')
+		]]>
+		</if>
+		<if test="userNm != null and userNm != ''">
+		<![CDATA[
+		   AND T.USER_NM LIKE CONCAT('%', #{userNm}, '%')
+		]]>
+		</if>
+		<if test="apvNo != null and apvNo != ''">
+		<![CDATA[
+		   AND T.APV_NO LIKE CONCAT('%', #{apvNo}, '%')
+		]]>
+		</if>
+		<if test="groupId != null and groupId != ''">
+		<![CDATA[
+		   AND T.GROUP_ID LIKE CONCAT('%', #{groupId}, '%')
+		]]>
+		</if>
+		<if test="addYn != null and addYn != ''">
+		<![CDATA[
+		   AND T.ADD_YN = #{addYn}
+		]]>
+		</if>
+		<if test="regDtFrom != null and regDtFrom != ''">
+		<![CDATA[
+		   AND DATE_FORMAT(CONVERT_TZ(T.REG_DT, '+00:00', '+09:00'), '%Y%m%d') >= ${regDtFrom}
+		]]>
+		</if>
+		<if test="regDtTo != null and regDtTo != ''">
+		<![CDATA[
+		   AND DATE_FORMAT(CONVERT_TZ(T.REG_DT, '+00:00', '+09:00'), '%Y%m%d') <= ${regDtTo}
+		]]>
+		</if>
+		<![CDATA[
+		 ORDER BY T.APV_NO, T.REG_DT
+		]]>
+	</select>
+
+	<insert id="insertHistoryGroupChange" parameterType="Map">
+		<![CDATA[
+		INSERT
+		  INTO portal.tb_group_change
+		      (APV_NO
+		      ,APV_USER_ID
+		      ,APV_DT
+		      ,REQ_USER_ID
+		      ,REQ_DT
+		      ,REG_DT)
+		VALUES(#{apvNo}
+		      ,#{apvUserId}
+		      ,#{apvDt}
+		      ,#{reqUserUd}
+		      ,#{reqDt}
+		      ,NOW())
+		]]>
+	</insert>
+
+	<insert id="insertHistoryGroupChangeDetail" parameterType="Map">
+		<![CDATA[
+		INSERT
+		  INTO portal.tb_group_change_detail
+		      (APV_NO
+		      ,USER_ID
+		      ,GROUP_ID
+		      ,ADD_YN
+		      ,SUCCESS_YN
+		      ,BEFORE_STATUS
+		      ,REQ_ID
+		      ,REG_DT)
+		VALUES(#{apvNo}
+		      ,#{userId}
+		      ,#{groupId}
+		      ,#{addYn}
+		      ,#{successYn}
+		      ,#{beforeStatus}
+		      ,#{reqId}
+		      ,NOW())
+		]]>
+	</insert>
+
+	<insert id="insertHistoryApi" parameterType="Map">
+		<![CDATA[
+		INSERT
+		  INTO portal.tb_api_request
+		      (REQ_ID
+		      ,REQ_IP
+		      ,REQ_URL
+		      ,REQ_METHOD
+		      ,REQ_JSON
+		      ,RES_JSON
+		      ,REG_DT)
+		VALUES(#{reqId}
+		      ,#{reqIp}
+		      ,#{reqUrl}
+		      ,#{reqMethod}
+		      ,#{reqJson}
+		      ,#{resJson}
+		      ,NOW())
+		]]>
+	</insert>
+
+	<select id="selectMemberRequired" parameterType="String"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT MRQ.TENANT_ID
+		      ,MRQ.USER_ID
+		      ,CONVERT_TZ(MRQ.REG_DT, '+00:00', '+09:00') AS REG_DT
+		  FROM portal.tb_member_required MRQ
+		 ORDER BY MRQ.REG_DT DESC
+		]]>
+	</select>
+</mapper>

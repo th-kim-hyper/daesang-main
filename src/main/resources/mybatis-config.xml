@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd" >
+
+<configuration>
+
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true" />
+		<setting name="jdbcTypeForNull" value="NULL" /> <!-- 검색 파라메터에 대한 null 처리 -->
+		<setting name="callSettersOnNulls" value="true" /> <!-- 검색 결과(Column)에 대한 null 처리 -->
+		<setting name="returnInstanceForEmptyRow" value="true" /> <!-- 검색 결과(Row)에 대한 null 처리 -->
+	</settings>
+
+	<typeAliases>
+		<typeAlias type="com.daesang.rpa.common.CamelCaseMap"
+			alias="CamelCaseMap" />
+	</typeAliases>
+
+</configuration>

@@ -1,0 +1,133 @@
+/* Noto Sans */
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-weight: 300;
+	src: local(''),
+		 url('../fonts/noto-sans-v26-latin-300.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-300.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-300.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-v26-latin-300.svg#NotoSans') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-weight: 400;
+	src: local(''),
+		 url('../fonts/noto-sans-v26-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-regular.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-v26-latin-regular.svg#NotoSans') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-weight: 500;
+	src: local(''),
+		 url('../fonts/noto-sans-v26-latin-500.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-500.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-500.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-v26-latin-500.svg#NotoSans') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-weight: 700;
+	src: local(''),
+		 url('../fonts/noto-sans-v26-latin-700.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-700.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-700.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-v26-latin-700.svg#NotoSans') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Noto Sans';
+	font-style: normal;
+	font-weight: 900;
+	src: local(''),
+		 url('../fonts/noto-sans-v26-latin-900.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-900.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-v26-latin-900.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-v26-latin-900.svg#NotoSans') format('svg'); /* Legacy iOS */
+}
+/* Noto Sans KR - korean */
+@font-face {
+	font-family: 'Noto Sans KR';
+	font-style: normal;
+	font-weight: 300;
+	src: local(''),
+		 url('../fonts/noto-sans-kr-v26-korean-300.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-300.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-300.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-kr-v26-korean-300.svg#NotoSansKR') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Noto Sans KR';
+	font-style: normal;
+	font-weight: 400;
+	src: local(''),
+		 url('../fonts/noto-sans-kr-v26-korean-regular.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-regular.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-kr-v26-korean-regular.svg#NotoSansKR') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Noto Sans KR';
+	font-style: normal;
+	font-weight: 500;
+	src: local(''),
+		 url('../fonts/noto-sans-kr-v26-korean-500.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-500.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-500.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-kr-v26-korean-500.svg#NotoSansKR') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Noto Sans KR';
+	font-style: normal;
+	font-weight: 700;
+	src: local(''),
+		 url('../fonts/noto-sans-kr-v26-korean-700.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-700.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-700.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-kr-v26-korean-700.svg#NotoSansKR') format('svg'); /* Legacy iOS */
+}
+  @font-face {
+	font-family: 'Noto Sans KR';
+	font-style: normal;
+	font-weight: 900;
+	src: local(''),
+		 url('../fonts/noto-sans-kr-v26-korean-900.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-900.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/noto-sans-kr-v26-korean-900.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/noto-sans-kr-v26-korean-900.svg#NotoSansKR') format('svg'); /* Legacy iOS */
+}
+/* Nanum Gothic */
+@font-face {
+	font-family: 'Nanum Gothic';
+	font-style: normal;
+	font-weight: 400;
+	src: local(''),
+		 url('../fonts/nanum-gothic-v17-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/nanum-gothic-v17-latin-regular.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/nanum-gothic-v17-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/nanum-gothic-v17-latin-regular.svg#NanumGothic') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Nanum Gothic';
+	font-style: normal;
+	font-weight: 700;
+	src: local(''),
+		 url('../fonts/nanum-gothic-v17-latin-700.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/nanum-gothic-v17-latin-700.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/nanum-gothic-v17-latin-700.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/nanum-gothic-v17-latin-700.svg#NanumGothic') format('svg'); /* Legacy iOS */
+}
+@font-face {
+	font-family: 'Nanum Gothic';
+	font-style: normal;
+	font-weight: 800;
+	src: local(''),
+		 url('../fonts/nanum-gothic-v17-latin-800.woff2') format('woff2'), /* Super Modern Browsers */
+		 url('../fonts/nanum-gothic-v17-latin-800.woff') format('woff'), /* Modern Browsers */
+		 url('../fonts/nanum-gothic-v17-latin-800.ttf') format('truetype'), /* Safari, Android, iOS */
+		 url('../fonts/nanum-gothic-v17-latin-800.svg#NanumGothic') format('svg'); /* Legacy iOS */
+}

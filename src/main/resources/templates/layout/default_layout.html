@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+    <head>
+        <!-- meta -->
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="bootstrap 5 components">
+        <!-- title -->
+        <title>RPA Portal</title>
+        <link rel="shortcut icon" href="/images/favicon.jfif">
+        <!-- css : external -->
+        <!-- <link rel="stylesheet" href="/css/nomalize.css"> -->
+        <link rel="stylesheet" href="/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/css/bootstrap-datepicker.min.css">
+        <!-- <link rel="stylesheet" href="/css/dataTables.bootstrap5.min.css"> -->
+        <link rel="stylesheet" href="/css/jquery.dataTables.min.css">
+        <link rel="stylesheet" href="/css/select.dataTables.min.css">
+        <link rel="stylesheet" href="/css/materialdesignicons.min.css">
+        <link rel="stylesheet" href="/css/sidebars.css">
+        <link rel="stylesheet" href="/css/common.css">
+        <link rel="stylesheet" href="/css/layout.css">
+        <!-- js -->
+        <script src="/js/jquery-3.5.1.js"></script>
+        <script src="/js/bootstrap-datepicker.min.js"></script>
+        <script src="/js/bootstrap-datepicker.kr.js"></script>
+        <script src="/js/jquery.dataTables.min.js"></script>
+        <script src="/js/dataTables.bootstrap5.min.js"></script>
+        <script src="/js/dataTables.select.min.js"></script>
+        <script src="/js/bootstrap.bundle.min.js"></script>
+        <script src="/js/sidebars.js"></script>
+        <script src="/js/common.js"></script>
+        <!-- css : internal -->
+        <th:block layout:fragment="css"></th:block>
+        <style>
+            #spinner { width: 100%; height: 100%; top: 0; left: 0; display: none; opacity: .6; background: silver; position: absolute; z-index: 2; }
+            #spinner div { width: 100%; height: 100%; display: table; }
+            #spinner span { display: table-cell; text-align: center; vertical-align: middle; }
+            #spinner img { background: white; padding: 1em; border-radius: .7em; }
+        </style>
+        <!-- js : user -->
+        <th:block layout:fragment="script"></th:block>
+        <script>
+            // 마우스 우클릭 방지
+            document.oncontextmenu = function(){return false;}
+
+            $(document).ready(function () {
+
+                var href = window.location.href;
+
+                // Depth 1 초기화
+                if( href.indexOf("/statistic") > 0) {
+                	$($("#menu-depth1 li a")[0]).addClass("active")
+                    $("#menu-depth2-1").show();
+                    $("#menu-depth2-2").hide();
+                } else {
+                	$($("#menu-depth1 li a")[1]).addClass("active")
+                    $("#menu-depth2-1").hide();
+                    $("#menu-depth2-2").show();
+                }
+
+                // Depth 2 초기화
+                if( href.indexOf("/statistic") > 0) {
+                	$("#nav-statistic").addClass("active");
+                }
+                if( href.indexOf("/members") > 0) {
+                	$("#nav-members").addClass("active");
+                }
+                if( href.indexOf("/history/logins") > 0) {
+                	$("#nav-logins").addClass("active");
+                }
+                if( href.indexOf("/history/group-changes") > 0) {
+                	$("#nav-group-changes").addClass("active");
+                }
+
+                $(document).on("click", "#linkMenu1", function() {
+                    // depth 1
+                    $("#linkMenu1").addClass("active");
+                    $("#linkMenu2").removeClass("active");
+                    // depth 2
+                    $("#menu-depth2-1").show();
+                    $("#menu-depth2-2").hide();
+                });
+
+                $(document).on("click", "#linkMenu2", function() {
+                    // depth 1
+                    $("#linkMenu2").addClass("active");
+                    $("#linkMenu1").removeClass("active");
+                    // depth 2
+                    $("#menu-depth2-1").hide();
+                    $("#menu-depth2-2").show();
+                });
+
+                $(document).on("click", "#linkMenu3", function() {
+                    $("#frmRpa").submit();
+                });
+
+                $(document).bind('keydown', function(e) {
+
+                    // Ctrl, Alt, F12
+                    var deniedList = [17, 18, 123];
+
+                    for (var i = 0; i < deniedList.length; i++) {
+                        if (e.keyCode == 123) {
+                            e.preventDefault();
+                            e.returnValue = false;
+                            return;
+                        }
+                    }
+               });
+
+            });
+
+            function getTime(str) {
+                var date = str.split("-");
+                return (new Date(date[0], date[1] - 1, date[2])).getTime();
+            }
+        </script>
+    </head>
+    <!-- 단축키, 드래그, 마우스 오른쪽 클릭 방지 -->
+    <body class="daesang-rpa" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">
+        <header>
+            <nav
+                class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark"
+                aria-label="Main navigation">
+                <div class="container-fluid">
+                    <span class="navbar-brand">
+                        <strong class="user" th:text="${userInfo.userNm}">홍길동</strong>님 
+                        <strong>RPA 포탈</strong>에 오신 것을 환영합니다.</span>
+                </div>
+            </nav>
+        </header>
+
+        <main class="expand-submenu">
+            <div class="sidebar-menu d-flex flex-column flex-shrink-0 bg-white">
+                <a  th:href="@{/page/statistics}"
+                    class="d-block p-3 link-dark text-decoration-none logo">
+                    <img src="/images/logo.png" alt="Daesang" />
+                </a>
+                <ul id="menu-depth1" class="nav nav-pills nav-flush flex-column mb-auto text-center">
+                    <li>
+                        <a  id="linkMenu1" style="cursor:pointer;"
+                            class="nav-link py-3 mdi mdi-chart-bar"
+                            title="통계"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#sidemenu-collapse"
+                            aria-expanded="false">
+                            통계
+                        </a>
+                    </li>
+                    <li>
+                        <a  id="linkMenu2" style="cursor:pointer;"
+                            class="nav-link py-3 mdi mdi-account-cog-outline"
+                            title="사용자"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right">
+                            사용자
+                        </a>
+                    </li>
+                    <li>
+                        <a  id="linkMenu3" style="cursor:pointer;"
+                            class="nav-link py-3 mdi mdi-robot"
+                            title="RPA 수행"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right">
+                            RPA 수행
+                        </a>
+                        <form id="frmRpa" method="POST" th:action="${extUrl}" target="popup3">
+                            <input type="hidden" id="userId" name="userId" th:value="${userInfo.userId}" />
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            <div class="sidebar-submenu flex-shrink-0 p-3 bg-light">
+                <ul id="menu-depth2-1" class="list-unstyled ps-0">
+                    <li>
+                        <a  id="nav-statistic" th:href="@{/page/statistics}"
+                            class="btn btn-toggle align-items-center rounded collapsed">
+                            운영관리종합
+                        </a>
+                    </li>
+                    <li>
+                        <a  onClick="window.open('http://DVSSO.DAESANG.COM:8080/TableauTrustSSO/tableau.jsp?system=RPA&userid=bbbeck&site=&report=/views/RPA_16269353800190/sheet1?%3Aembed=yes&%3Atoolbar=top&%3Adisplay_count=no&%3Arender=false#1', 'popup1')"
+                            class="btn btn-toggle align-items-center rounded collapsed"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#sidemenu-collapse"
+                            aria-expanded="false">
+                            작업수행결과
+                        </a>
+                    </li>
+                    <li>
+                        <a  onClick="window.open('http://DVSSO.DAESANG.COM:8080/TableauTrustSSO/tableau.jsp?system=RPA&userid=bbbeck&site=&report=/views/RPA_16269353800190/sheet2?%3Aembed=yes%3F%3Aembed&%3Atoolbar=top&%3Adisplay_count=no&%3Arender=false#1', 'popup2')"
+                            class="btn btn-toggle align-items-center rounded collapsed">
+                            과제성공률
+                        </a>
+                    </li>
+                </ul>
+                <ul id="menu-depth2-2" class="list-unstyled ps-0">
+                    <li>
+                        <a id="nav-members" th:href="@{/page/base/members}"
+                            class="btn btn-toggle align-items-center rounded collapsed">
+                            사용자현황
+                        </a>
+                    </li>
+                    <li>
+                        <a  id="nav-logins" th:href="@{/page/base/history/logins}"
+                            class="btn btn-toggle align-items-center rounded collapsed">
+                            로그인이력
+                        </a>
+                    </li>
+                    <li>
+                        <a  id="nav-group-changes" th:href="@{/page/base/history/group-changes}"
+                            class="btn btn-toggle align-items-center rounded collapsed">
+                            권한변경이력
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <th:block layout:fragment="content"></th:block>
+
+        </main>
+        <div id='spinner'>
+            <div>
+                <span><img src='/images/loader.gif'></span>
+            </div>
+        </div>
+</body>
+</html>

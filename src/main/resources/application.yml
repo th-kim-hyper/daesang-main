@@ -1,0 +1,172 @@
+###프로파일 설정
+spring:
+  profiles:
+    group:
+      local: common-env
+      test:  common-env,test-env
+      product: common-env,product-env
+    active: local
+
+---
+################################################## 프레임워크 기본 설정(로컬 개발환경을 포함한 기본 설정)
+jasypt:
+  encryptor:
+    bean: encryptorBean
+
+spring:
+  config:
+    activate:
+      on-profile: common-env
+  datasource:
+    #MariaDB 10.3.28(RANDITSOFT - DEVELOPMENT ENV.)
+    common:
+      jdbc-url: jdbc:log4jdbc:mysql://192.168.0.100:3307/rpa?useLegacyDatetimeCode=false&serverTimezone=GMT&useTimezone=true&allowMultiQueries=true
+      username: root
+      password: qwert9
+      driverClassName: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+    #Oracle 12.1.0.2(RANDITSOFT - DEVELOPMENT ENV.)
+    groupware:
+      jdbc-url: jdbc:log4jdbc:oracle:thin:@192.168.0.100:1521:xe
+      username: GWDB
+      password: qwert9
+      driverClassName: net.sf.log4jdbc.sql.jdbcapi.DriverSpy
+  thymeleaf:
+    enabled: true
+    cache: false
+    prefix: classpath:templates/
+    suffix: .html
+    mode: HTML
+    check-template-location: true
+  jackson:
+    default-property-inclusion: always
+  devtools:
+    livereload:
+      enabled: true
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
+server:
+  port: 8082
+  servlet:
+    session:
+      timeout: 120m
+
+#RPA 포탈 환경 설정
+rpa:
+  base:
+    tenant: tenant_1
+    user: admin
+  proxy:
+    url: http://localhost:8777
+    token: eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxNjU3MDAzNjM1NDMwLTExZTg5OGNmLWMzYTJmZmVmIiwiaXNzIjoiQVVUSF9DTElFTlRfQ0VSVElGSUNBVEUiLCJhdWQiOiJBVVRIX0FQSV9TRVJWRVIiLCJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRUeXBlIjoiQVBJX0tFWSIsImNsaWVudElkIjoiQVVUSF9BUElfU0VSVkVSIiwidXNlcklkIjoiYWRtaW4iLCJjaGFsbGVuZ2UiOiIxNjU3MDAzNjM1NDMwLWQ0YmQ5NzhkLTcyOTQ2Nzk3IiwiaXBBZGRyIjoiMTI3LjAuMC4xIiwidGVuYW50SWQiOiJUTl9iYTFmYThmMzNiNGE0ODcyYmU3YTI5ZmZiZmZhOTkyZiIsImlhdCI6MTY1NzAwMzYzNSwiZXhwIjoxNjU5NjI1MTk5fQ.OIqL51bQDv9dOYrwhJqeREsVZ8GNHlxXEvIcQHqoGFU
+    api:
+      user: /tenant/api/v1/private/user
+      group: /tenant/api/v1/private/group
+      catalog: /tenant/api/v1/private/catalog/tenantinfoByUserId
+    allowed: 192.168.15.54,192.168.15.187,192.168.15.188,192.168.15.189,192.168.15.190,172.30.16.160
+  scheduled:
+    sync-member: 0 0 5 * * *
+  sso:
+    ignore: false
+    url: http://sso.daesang.com
+  ext:
+    url: https://rpa.daesang.com:8080/admin/ext/response
+
+---
+################################################## 프레임워크 기본 설정(테스트 환경)
+spring:
+  config:
+    activate:
+      on-profile: test-env
+  datasource:
+    #MariaDB 10.3.28(DAESANG - TEST ENV.)
+    common:
+      jdbc-url: jdbc:log4jdbc:mysql://127.0.0.1:4406/rpa?useLegacyDatetimeCode=false&serverTimezone=GMT&useTimezone=true&allowMultiQueries=true
+      username: admin
+      password: ENC(fLcnKHe8IsReFABlja6iHdOhwNZZLLdR)
+    #Oracle 11.2.0.2(DAESANG - PRODUCTION ENV.)
+    groupware:
+      jdbc-url: jdbc:log4jdbc:oracle:thin:@172.17.0.191:1521:GWDB
+      username: rpauser
+      password: ENC(WDEhR//jq/JFmSdW+PMbtHGUqn8prj2G)
+  thymeleaf:
+    cache: false
+  devtools:
+    livereload:
+      enabled: false
+
+#RPA 포탈 환경 설정
+rpa:
+  base:
+    tenant: tenant_1
+    user: admin
+  proxy:
+    url: https://rpa.daesang.com:8777
+    token: eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxNjU3MTgxMjM4NDQwLTNkYmNkOGExLTM0YzM0M2U3IiwiaXNzIjoiQVVUSF9DTElFTlRfQ0VSVElGSUNBVEUiLCJhdWQiOiJBVVRIX0FQSV9TRVJWRVIiLCJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRUeXBlIjoiQVBJX0tFWSIsImNsaWVudElkIjoiQVVUSF9BUElfU0VSVkVSIiwidXNlcklkIjoiYWRtaW4iLCJjaGFsbGVuZ2UiOiIxNjU3MTgxMjM4NDQwLWI4YzY5YzVhLTQ4MDI0NjU5IiwiaXBBZGRyIjoiMTI3LjAuMC4xIiwidGVuYW50SWQiOiJ0ZW5hbnRfMSIsImlhdCI6MTY1NzE4MTIzOCwiZXhwIjoxNjU5Nzk3OTk5fQ.Lpolrqn1nFaDvIGG4THSQFoaAXu_RZbTkBww6shk7vA
+  sso:
+    ignore: false
+  ext:
+    url: https://rpa.daesang.com:8080/admin/ext/response
+
+#로그 설정
+logging:
+  level:
+    root: info
+    org:
+      springframework:
+        web:
+          servlet:
+            DispatcherServlet: debug
+      apache:
+        coyote:
+          http11:
+            Http11InputBuffer: debug
+        tomcat:
+          util:
+            http:
+              Parameters: debug
+    jdbc:
+      audit: off
+      resultset: off
+      resultsettable: debug
+      nodeValue: off
+      sqlonly: off
+      sqltiming: debug
+
+---
+################################################## 프레임워크 기본 설정(운영 환경)
+spring:
+  config:
+    activate:
+      on-profile: product-env
+  datasource:
+    #MariaDB 10.3.28(DAESANG - PRODUCTION ENV.)
+    common:
+      jdbc-url: jdbc:mysql://127.0.0.1:4406/rpa?useLegacyDatetimeCode=false&serverTimezone=GMT&useTimezone=true&allowMultiQueries=true
+      username: admin
+      password: ENC(fLcnKHe8IsReFABlja6iHdOhwNZZLLdR)
+      driverClassName: com.mysql.cj.jdbc.Driver
+    #Oracle 11.2.0.2(DAESANG - PRODUCTION) ENV.
+    groupware:
+      jdbc-url: jdbc:oracle:thin:@172.17.0.191:1521:GWDB
+      username: rpauser
+      password: ENC(WDEhR//jq/JFmSdW+PMbtHGUqn8prj2G)
+      driverClassName: oracle.jdbc.OracleDriver
+  thymeleaf:
+    cache: true
+  devtools:
+    livereload:
+      enabled: false
+
+#RPA 포탈 환경 설정
+rpa:
+  base:
+    tenant: tenant_1
+    user: admin
+  proxy:
+    url: https://rpa.daesang.com:8777
+    token: eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxNjU5MzQ0MDYxNzE4LTIwNDFmZjdiLTdhMTczYTUxIiwiaXNzIjoiQVVUSF9DTElFTlRfQ0VSVElGSUNBVEUiLCJhdWQiOiJBVVRIX0FQSV9TRVJWRVIiLCJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRUeXBlIjoiQVBJX0tFWSIsImNsaWVudElkIjoiQVVUSF9BUElfU0VSVkVSIiwidXNlcklkIjoiYWRtaW4iLCJjaGFsbGVuZ2UiOiIxNjU5MzQ0MDYxNzE4LTNjMDAwYjA1LWVmZjBkMWYxIiwiaXBBZGRyIjoiMTI3LjAuMC4xIiwidGVuYW50SWQiOiJ0ZW5hbnRfMSIsImlhdCI6MTY1OTM0NDA2MSwiZXhwIjoxNjkwOTAxOTk5fQ._StLWtb8oiA7V8P7waEhLq9LSE7PfT3fVugwbCydab8
+  sso:
+    ignore: false
+  ext:
+    url: https://rpa.daesang.com:8080/rpa/ext/response

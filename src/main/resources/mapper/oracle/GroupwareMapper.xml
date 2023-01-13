@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.daesang.rpa.repository.oracle.GroupwareMapper">
+
+	<select id="selectMembers" parameterType="String"
+		resultType="CamelCaseMap">
+		<![CDATA[
+		SELECT USR.IMUSERID
+		      ,USR.COMPANYCODE
+		      ,USR.ORGNUMBER
+		      ,USR.NAME
+		      ,NVL(USR.SHORTNAME, USR.IMUSERID) AS SHORTNAME
+		      ,USR.DEPTCODE1 AS DEPTCODE
+		      ,USR.USER_TYPE
+		      ,USR.CREATEDATE
+		      ,USR.UPDATEDATE
+		      ,DPT.SHORTNAME AS DEPTNAME
+		      ,NVL(USR.SHORTNAME, USR.IMUSERID) || '@daesang.com' AS EMAIL
+		      ,'대상주식회사' AS COMPANYNAME
+		]]>
+		<if test="baseDate == '19700101'">
+		<![CDATA[
+		      ,'A' AS SYNC_TYPE
+		]]>
+		</if>
+		<if test="baseDate != '19700101'">
+		<![CDATA[
+		      ,CASE WHEN TO_CHAR(CREATEDATE + 1, 'yyyyMMdd') = #{baseDate} AND TO_CHAR(CREATEDATE, 'yyyyMMdd') = TO_CHAR(UPDATEDATE, 'yyyyMMdd')
+		            THEN 'A'
+		            WHEN TO_CHAR(UPDATEDATE + 1, 'yyyyMMdd') = #{baseDate}
+		            THEN 'M'
+		            ELSE 'X' END AS SYNC_TYPE
+		]]>
+		</if>
+		<![CDATA[
+		  FROM(SELECT IMUSERID
+		             ,COMPANYCODE
+		             ,ORGNUMBER
+		             ,NAME
+		             ,SHORTNAME
+		             ,DEPTCODE1
+		             ,'E' AS USER_TYPE
+		             ,CREATEDATE
+		             ,UPDATEDATE
+		         FROM GWDB.RPAUSER_TBL_MASTER
+		        UNION ALL
+		       SELECT IMUSERID
+		             ,COMPANYCODE
+		             ,ORGNUMBER
+		             ,NAME
+		             ,SHORTNAME
+		             ,DEPTCODE1
+		             ,'T'
+		             ,CREATEDATE
+		             ,UPDATEDATE
+		         FROM GWDB.RPAUSER_TBL_IMSI) USR
+		   JOIN GWDB.RPAUSER_TBL_DEPT_MASTER DPT
+		     ON USR.COMPANYCODE = DPT.COMPANYCODE 
+		    AND USR.DEPTCODE1 = DPT.DEPTCODE
+		]]>
+		<if test="baseDate == '99991231'">
+		<![CDATA[
+		  WHERE ROWNUM = 0
+		]]>
+		</if>
+		<![CDATA[
+		  ORDER BY CREATEDATE DESC, UPDATEDATE DESC
+		]]>
+	</select>
+
+</mapper>

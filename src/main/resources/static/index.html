@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Test</title>
+<script src="../js/jquery-3.5.1.js"></script>
+<script>
+	$(document).ready(function() {
+
+		var options = {};
+		options.contentType = "application/json";
+		options.success = function(xhr) {
+			console.log("호출 성공");
+			console.log(xhr);
+			delete options.data;
+		};
+		options.error = function(xhr) {
+			console.log("호출 실패");
+			console.log(xhr);
+			delete options.data;
+		};
+
+		$(document).on("click", "#anc1", function() {
+			options.method = "GET";
+			options.url = "/api/statistics";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc2", function() {
+			options.method = "GET";
+			options.url = "/api/tenants";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc3", function() {
+			options.method = "GET";
+			options.url = "/api/base/groups";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc4", function() {
+			options.method = "GET";
+			options.url = "/api/base/members";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc15", function() {
+			options.method = "GET";
+			options.url = "/api/base/members/admin";
+			$.ajax(options);
+
+			options.url = "/api/base/members/dummy";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc5", function() {
+			options.method = "GET";
+			options.url = "/api/base/history/logins";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc6", function() {
+			options.method = "GET";
+			options.url = "/api/base/history/group-changes";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc7", function() {
+			options.method = "GET";
+			options.url = "/proxy/tenants";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc8", function() {
+			options.method = "GET";
+			options.url = "/proxy/base/groups";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc9", function() {
+			options.method = "GET";
+			options.url = "/proxy/base/members";
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc10", function() {
+
+			var user1 = {};
+			user1.userId = "admin";
+			user1.groupId = "195";
+			user1.addYn = true; // 그룹에 추가
+
+			var user2 = {};
+			user2.userId = "rpa01";
+			user2.groupId = "196";
+			user2.addYn = false; // 그룹에서 제외
+
+			// 그룹(권한) 변경요청 정보(리스트)
+			var groupChanges = [];
+			groupChanges.push(user1);
+			groupChanges.push(user2);
+
+			var data = {};
+			data.apvNo = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)); // 승인번호
+			data.groupChanges = groupChanges;
+
+			options.method = "POST";
+			options.url = "/proxy/base/group-changes";
+			options.data = JSON.stringify(data); // 직렬화 후 전달
+			$.ajax(options);
+		});
+
+		$(document).on("click", "#anc11", function() {
+			location.href = "/export/base/history/logins";
+		});
+
+		$(document).on("click", "#anc12", function() {
+			location.href = "/export/base/history/group-changes";
+		});
+
+		$(document).on("click", "#anc13", function() {
+			location.href = "/page/statistics";
+		});
+
+		$(document).on("click", "#anc14", function() {
+			options.method = "GET";
+			options.url = "/api/base/sync-members/20220601";
+			$.ajax(options);
+		});
+
+	});
+</script>
+
+</head>
+<body>
+	<h1>각 항목 클릭 후 소스코드 및 Console log 확인</h1>
+	<ul>
+		<li id="anc1">통계 일람 조회</li>
+		<li id="anc2">테넌트 일람 조회</li>
+		<li id="anc3">테넌트별 그룹 일람 조회</li>
+		<li id="anc4">테넌트별 사용자 일람 조회</li>
+		<li id="anc5">테넌트별 로그인 이력 일람 조회</li>
+		<li id="anc6">테넌트별 그룹변경 이력 일람 조회</li>
+		<li id="anc7">테넌트 일람 조회</li>
+		<li id="anc8">테넌트별 그룹 일람 조회(proxy)</li>
+		<li id="anc9">테넌트별 사용자 일람 조회(proxy)</li>
+		<li id="anc15">테넌트별 사용자 상세 조회(proxy)</li>
+		<li id="anc10">테넌트별 그룹변경(proxy)</li>
+		<li id="anc14">테넌트별 사용자동기화(api)</li>
+		<li id="anc11">테넌트별 로그인 이력 일람 조회(export)</li>
+		<li id="anc12">테넌트별 그룹변경 이력 일람 조회(export)</li>
+		<li id="anc13">통계 일람 화면 이동</li>
+	</ul>
+</body>
+</html>

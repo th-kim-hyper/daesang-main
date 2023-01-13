@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/default_layout}">
+
+    <!--  CSS Start-->
+    <th:block layout:fragment="css">
+    </th:block>
+    <!--  CSS End-->
+
+    <!--  JS Start-->
+    <th:block layout:fragment="script">
+        <script src="/js/Chart.js"></script>
+        <script src="/js/chartjs-plugin-labels.js"></script>
+        <script src="/js/chartjs-plugin-doughnutlabel.js"></script>
+
+        <script>
+            var regDtFrom = new Date();
+            var regDtTo = new Date();
+
+            // 하루 전
+            regDtTo.setDate(regDtTo.getDate() - 1);
+
+            // 해당 월의 1일
+            regDtFrom.setMonth(regDtTo.getMonth());
+            regDtFrom.setDate(1);
+
+            var param = {};
+            var type = "1";
+
+            var chart1;
+            var chart2;
+            var chart3;
+            var chart4;
+            var chart5;
+
+            $(document).ready(function () {
+
+                init();
+
+                // 차트 격자/선형으로 베열
+                $(".grid-dashboard").each(function () {
+                    $(this).find(".active-toggle-group").find(".mdi-view-dashboard").click(function () {
+                        $(this).parents(".grid-dashboard").removeClass("grid-vertical");
+                        type = "1";
+                        retrieveStatistics();
+                    });
+                    $(this).find(".active-toggle-group").find(".mdi-view-agenda").click(function () {
+                        $(this).parents(".grid-dashboard").addClass("grid-vertical");
+                        type = "2";
+                        retrieveStatistics();
+                    });
+                });
+
+                $(document).on("change", "#divName", function() {
+
+                    if ($(this).val() == "") {
+                        $("#teamName").html("<option value=''>전체</option>");
+                        return;
+                    }
+
+                    var options = {};
+                    options.method = "GET";
+                    options.contentType = "application/json";
+                    options.url = "/api/statistics/" + $(this).val() + "/teams";
+                    options.error = function(xhr) {
+                        if(xhr.responseJSON != undefined && xhr.responseJSON.message != undefined) {
+                            alert(xhr.responseJSON.message);
+                            window.location.href=xhr.responseJSON.ssoUrl;
+                        }
+                    }
+                    options.success = function(xhr) {
+                        var tag ="<option value=''>전체</option>"
+                        for (var i = 0; i < xhr.length; i++) {
+                            tag = tag + "<option value='" + xhr[i].teamName + "'>" + xhr[i].teamName + "</option>"
+                        }
+                        $("#teamName").html(tag);
+                    };
+
+                    $.ajax(options);
+                });
+
+                $(document).on("click", "#reset", function() {
+                    $("#frm-search").each(function() {
+                        this.reset();
+                    });
+
+                    $("#regDtFrom").datepicker({"format" : "yyyy-mm-dd"}).datepicker("setDate", regDtFrom);
+                    $("#regDtTo").datepicker({"format" : "yyyy-mm-dd"}).datepicker("setDate", regDtTo);
+                });
+
+                $(document).on("click", "#search", function() {
+                    retrieveStatistics();
+                });
+
+            })
+
+            function init() {
+
+                $("#regDtFrom").datepicker({"format" : "yyyy-mm-dd"}).datepicker("setDate", regDtFrom);
+                $("#regDtTo").datepicker({"format" : "yyyy-mm-dd"}).datepicker("setDate", regDtTo);
+
+                retrieveStatistics();
+            }
+
+            function retrieveStatistics() {
+
+                var priod = (getTime($("#regDtTo").val()) - getTime($("#regDtFrom").val())) / (1000 * 60 * 60 * 24);
+                if (priod > 365) {
+                    alert("검색 기간은 1년을 초과할 수 없습니다.");
+                    return;
+                }
+
+                $("#spinner").show();
+
+                var data = $("#frm-search").serialize();
+                data = data + "&type=" + type;
+
+                var options = {};
+                options.method = "GET";
+                options.contentType = "application/json";
+                options.url = "/api/statistics";
+                options.data = data;
+                options.error = function(xhr) {
+                    if(xhr.responseJSON != undefined && xhr.responseJSON.message != undefined) {
+                        alert(xhr.responseJSON.message);
+                        window.location.href=xhr.responseJSON.ssoUrl;
+                    }
+                }
+                options.success = function(xhr) {
+
+                    var summary = xhr.summary;
+                    $("#workHour").html((summary.workHour).toLocaleString("ko-KR"));
+                    $("#workAmount").html((summary.workAmount).toLocaleString("ko-KR"));
+                    $("#targetCount").html((summary.targetCount).toLocaleString("ko-KR"));
+                    $("#objectCount").html((summary.objectCount).toLocaleString("ko-KR"));
+
+                    drawChart1(xhr.chart1);
+                    drawChart2(xhr.chart2);
+                    drawChart3(xhr.chart3);
+                    drawChart4(xhr.chart4);
+                    drawChart5(xhr.chart5);
+                };
+                options.complete = function() {
+                    $("#spinner").hide();
+                };
+
+                $.ajax(options);
+            }
+
+            function drawChart1(info) {
+
+                if (chart1 != undefined) {
+                    chart1.destroy();
+                }
+
+                var data = {
+                        labels: info.labels,
+                        datasets: [{
+                            label: '작업시간',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 1,
+                            data: info.data
+                        }]
+                    };
+
+                var config = {
+                        type: 'bar',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            legend: {
+                                position: 'top',
+                                display: false
+                            },
+                            layout: {padding: {top: 20}},
+                            title: {
+                                display: false,
+                                text: '작업시간'
+                            },
+                            scaleShowValues: true,
+                            scales: {
+                              xAxes: [{
+                                ticks: {
+                                  autoSkip: false
+                                }
+                              }],
+                              yAxes: [{
+                                ticks: {
+                                  beginAtZero:true,
+                                  callback: function (value) {
+                                    if (0 === value % 1) {
+                                      return value;
+                                    }
+                                  }
+                                }
+                              }]
+                            },
+                            plugins: {
+                                labels: {
+                                  render: 'value'
+                                }
+                            }
+                        }
+                    }
+
+                chart1 = new Chart(document.getElementById('chart-01').getContext('2d'), config);
+            }
+
+            function drawChart2(info) {
+
+                if (chart2 != undefined) {
+                    chart2.destroy();
+                }
+
+                var data = {
+                        labels: info.labels,
+                        datasets: [{
+                            label: '작업결과',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderWidth: 1,
+                            data: info.data
+                        }]
+                    };
+
+                var config = {
+                        type: 'bar',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            legend: {
+                                position: 'top',
+                                display: false
+                            },
+                            layout: {padding: {top: 20}},
+                            title: {
+                                display: false,
+                                text: '작업결과'
+                            },
+                            scaleShowValues: true,
+                            scales: {
+                              xAxes: [{
+                                ticks: {
+                                  autoSkip: false
+                                }
+                              }],
+                              yAxes: [{
+                                ticks: {
+                                  beginAtZero:true,
+                                  callback: function (value) {
+                                    if (0 === value % 1) {
+                                      return value;
+                                    }
+                                  }
+                                }
+                              }]
+                            },
+                            plugins: {
+                                labels: {
+                                  render: 'value'
+                                }
+                            }
+                        }
+                    }
+
+                chart2 = new Chart(document.getElementById('chart-02').getContext('2d'), config);
+            }
+
+            function drawChart3(info) {
+
+                if (chart3 != undefined) {
+                    chart3.destroy();
+                }
+
+                var data = {
+                        labels: info.labels,
+                        datasets: [{
+                            label: '작업갯수',
+                            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                            borderWidth: 1,
+                            data: info.data
+                        }]
+                    };
+
+                var config = {
+                        type: 'bar',
+                        data: data,
+                        options: {
+                            responsive: true,
+                            legend: {
+                                position: 'top',
+                                display: false
+                            },
+                            layout: {padding: {top: 20}},
+                            title: {
+                                display: false,
+                                text: '작업갯수'
+                            },
+                            scaleShowValues: true,
+                            scales: {
+                              xAxes: [{
+                                ticks: {
+                                  autoSkip: false
+                                }
+                              }],
+                              yAxes: [{
+                                ticks: {
+                                  beginAtZero:true,
+                                  callback: function (value) {
+                                    if (0 === value % 1) {
+                                      return value;
+                                    }
+                                  }
+                                }
+                              }]
+                            },
+                            plugins: {
+                                labels: {
+                                  render: 'value'
+                                }
+                            }
+                        }
+                    }
+
+                chart3 = new Chart(document.getElementById('chart-03').getContext('2d'), config);
+            }
+
+            function drawChart4(info) {
+
+                if (chart4 != undefined) {
+                    chart4.destroy();
+                }
+
+                var count = 0;
+                for (var i = 0; i < info.data.length; i++) {
+                    count = count + info.data[i];
+                }
+
+                var config = {
+                        type: 'doughnut',
+                        data: {
+                            datasets: [{
+                                data: info.data,
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.2)',
+                                    'rgba(54, 162, 235, 0.2)',
+                                    'rgba(255, 206, 86, 0.2)',
+                                    'rgba(75, 192, 192, 0.2)'
+                                ],
+                                label: '작업결과'
+                            }],
+                            labels: info.labels
+                        },
+                        options: {
+                            responsive: true,
+                            legend: {
+                                position: 'top',
+                            },
+                            layout: {padding: {top: 20}},
+                            title: {
+                                display: false,
+                                text: '작업결과'
+                            },
+                            animation: {
+                                animateScale: true,
+                                animateRotate: true
+                            },
+                            plugins: {
+                                labels: {
+                                  render: 'value'
+                                },
+                                doughnutlabel: {
+                                    labels: [{
+                                      text: '수행완료',
+                                    }, {
+                                      text: count
+                                    }]
+                                }
+                            }
+                        }
+                    };
+
+                chart4 = new Chart(document.getElementById('chart-04').getContext('2d'), config);
+            }
+
+            function drawChart5(info) {
+
+                if (chart5 != undefined) {
+                    chart5.destroy();
+                }
+
+                var context5 = document.getElementById('chart-05').getContext('2d');
+
+                var index = [];
+                for (var i = 0; i < 24; i++) {
+                    index.push(i);
+                }
+
+                var labels = info.labels;
+                var data5 = {
+                  labels: index,
+                  datasets: [
+                    {label: info.labels[0],
+                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                     data: info.data[0],
+                     fill: true},
+                    {label: info.labels[1],
+                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                     data: info.data[1],
+                     fill: true},
+                    {label: info.labels[2],
+                     backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                     data: info.data[2],
+                     fill: true},
+                    {label: info.labels[3],
+                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                     data: info.data[3],
+                     fill: true}]
+                };
+
+                var config5 = {
+                          type: 'line',
+                          data: data5,
+                          options: {
+                            responsive: true,
+                            layout: {padding: {top: 20}},
+                            plugins: {
+                              title: {
+                                display: false,
+                                text: '시간대별 작업결과'
+                              },
+                            },
+                            interaction: {
+                              mode: 'index',
+                              intersect: false
+                            },
+                            scales: {
+                              x: {
+                                display: true,
+                                title: {
+                                  display: false,
+                                  text: '시간'
+                                }
+                              },
+                              y: {
+                                display: true,
+                                title: {
+                                  display: false,
+                                  text: ' 작업결과'
+                                }
+                              },
+                              yAxes: [{
+                                ticks: {
+                                  beginAtZero:true,
+                                  callback: function (value) {
+                                    if (0 === value % 1) {
+                                      return value;
+                                    }
+                                  }
+                                }
+                              }]
+                            }
+                          },
+                        };
+
+                chart5 = new Chart(context5, config5);
+            }
+
+        </script>
+    </th:block>
+    <!--  JS End-->
+
+    <!--  Content Start-->
+            <div layout:fragment="content" class="container-fluid">
+                <div class="container">
+                    <h1 class="page-title">운영관리종합</h1>
+                    <section>
+                        <div class="section search-form">
+                            <div class="inner">
+<form id="frm-search" autocomplete="off">
+                                <div class="form-group row g-2 form-row">
+                                    <div class="col col-label">
+                                        <label class="col-form-label">본부</label>
+                                    </div>
+                                    <div class="col col-form col-2">
+                                        <select id="divName" name="divName" class="form-select">
+                                            <option value="" selected="selected">전체</option>
+                                            <option th:each="division : ${divisions}" th:value="${division.divName}" th:text="${division.divName}" />
+                                        </select>
+                                    </div>
+                                    <div class="col col-label">
+                                        <label class="col-form-label">팀</label>
+                                    </div>
+                                    <div class="col col-form col-2">
+                                        <select id="teamName" name="teamName" class="form-select">
+                                            <option value="" selected="selected">전체</option>
+                                        </select>
+                                    </div>
+                                    <div class="col col-label">
+                                        <label class="col-form-label required">기간</label>
+                                    </div>
+                                    <div class="col col-form d-flex">
+                                        <div class="input-group date datepicker" style="width: 150px;">
+                                            <input id="regDtFrom" name="regDtFrom" type="text" class="form-control" placeholder="yyyy-mm-dd">
+                                            <span class="input-group-append">
+                                                <div class="btn btn-outline-dark mdi mdi-calendar btn-icon">캘린더</div>
+                                            </span>
+                                        </div>
+                                        <span>~</span>
+                                        <div class="input-group date datepicker" style="width: 150px;">
+                                            <input id="regDtTo" name="regDtTo" type="text" class="form-control" placeholder="yyyy-mm-dd">
+                                            <span class="input-group-append">
+                                                <div class="btn btn-outline-dark mdi mdi-calendar btn-icon">캘린더</div>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+</form>
+                            </div>
+                            <div class="btn-wrap">
+                                <button id="reset" class="btn btn-outline-dark mdi mdi-refresh">초기화</button>
+                                <button id="search" class="btn btn-primary mdi mdi-magnify">조회</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="bg-gray">
+                        <div class="section grid-dashboard">
+                            <div class="form-group row g-2 block-top">
+                                <div class="col col-form d-flex justify-content-end">
+                                    <div class="btn-group active-toggle-group">
+                                        <a class="btn mdi mdi-view-dashboard btn-icon active">격자구조</a>
+                                        <a class="btn mdi mdi-view-agenda btn-icon">선형구조</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="inner">
+                                <div class="form-group row g-3">
+                                    <div class="col col-4">
+                                        <div class="chart-wrap">
+                                            <div class="chart-inner">
+                                                <h3>작업시간 / 금액</h3>
+                                                <div>
+                                                    <canvas id="chart-01"></canvas>
+                                                </div>
+                                            </div>
+                                            <div class="chart-status">
+                                                <ul class="operation-time">
+                                                    <li class="time">
+                                                        <strong id="workHour">0</strong>
+                                                        시간</li>
+                                                    <li class="price">
+                                                        <strong id="workAmount">0</strong>
+                                                        백만원</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col col-4">
+                                        <div class="chart-wrap">
+                                            <div class="chart-inner">
+                                                <h3>작업횟수</h3>
+                                                <div>
+                                                    <canvas id="chart-02"></canvas>
+                                                </div>
+                                            </div>
+                                            <div class="chart-status">
+                                                <ul class="operation-count">
+                                                    <li class="count">
+                                                        <strong  id="targetCount">0</strong>
+                                                        회</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col col-4">
+                                        <div class="chart-wrap">
+                                            <div class="chart-inner">
+                                                <h3>작업갯수</h3>
+                                                <div>
+                                                    <canvas id="chart-03"></canvas>
+                                                </div>
+                                            </div>
+                                            <div class="chart-status">
+                                                <ul class="operation-number">
+                                                    <li class="number">
+                                                        <strong id="objectCount">0</strong>
+                                                        EA</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col col-4">
+                                        <div class="chart-wrap">
+                                            <div class="chart-inner">
+                                                <h3>작업결과 통계</h3>
+                                                <div>
+                                                    <canvas id="chart-04"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col col-8">
+                                        <div class="chart-wrap">
+                                            <div class="chart-inner">
+                                                <h3>실행결과 추이</h3>
+                                                <div>
+                                                    <canvas id="chart-05"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+    <!--  Content End-->
+</html>
